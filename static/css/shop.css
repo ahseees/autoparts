@@ -1,0 +1,17 @@
+.part-card img {
+  height: 180px;
+  object-fit: contain;
+  background: #f8f9fa;
+}
+
+.part-photo {
+  max-height: 400px;
+  object-fit: contain;
+  background: #f8f9fa;
+}
+
+.price {
+  font-size: 1.25rem;
+  font-weight: 600;
+  white-space: nowrap;
+}

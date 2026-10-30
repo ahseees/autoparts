@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}{{ category.name|default:"Каталог" }} — {{ block.super }}{% endblock %}
+
+{% block content %}
+  <h1 class="h3 mb-3">
+    {{ category.name|default:"Все запчасти" }}
+    {% if query %}<small class="text-muted">: поиск «{{ query }}»</small>{% endif %}
+  </h1>
+
+  <form method="get" class="row g-2 align-items-end mb-3">
+    {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+
+    <div class="col-6 col-md-2">
+      <label class="form-label small mb-0">Марка</label>
+      <select class="form-select form-select-sm" name="make" onchange="this.form.submit()">
+        <option value="">Все марки</option>
+        {% for item in makes %}
+          <option value="{{ item.slug }}" {% if item.slug == make %}selected{% endif %}>{{ item.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-6 col-md-2">
+      <label class="form-label small mb-0">Модель</label>
+      <select class="form-select form-select-sm" name="model" {% if not make %}disabled{% endif %}>
+        <option value="">{% if make %}Все модели{% else %}Сначала марка{% endif %}</option>
+        {% for name in model_names %}
+          <option value="{{ name }}" {% if name == model %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-6 col-md-2">
+      <label class="form-label small mb-0">Год выпуска</label>
+      <input class="form-control form-control-sm" type="number" name="year"
+             min="1980" max="2035" value="{{ year|default:'' }}" placeholder="например, 2020">
+    </div>
+
+    <div class="col-6 col-md-3">
+      <label class="form-label small mb-0">Сортировка</label>
+      <select class="form-select form-select-sm" name="sort">
+        {% for value, option in sort_options.items %}
+          <option value="{{ value }}" {% if value == sort %}selected{% endif %}>{{ option.1 }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-12 col-md-3 d-flex gap-2">
+      <button class="btn btn-sm btn-primary" type="submit">Применить</button>
+      <a class="btn btn-sm btn-outline-secondary" href="{{ request.path }}">Сбросить</a>
+    </div>
+  </form>
+
+  <p class="text-muted small">Найдено запчастей: {{ page.paginator.count }}</p>
+
+  <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3">
+    {% for part in page %}
+      <div class="col">
+        {% include "catalog/_part_card.html" %}
+      </div>
+    {% empty %}
+      <p class="text-muted">Запчастей не найдено.</p>
+    {% endfor %}
+  </div>
+
+  {% if page.has_other_pages %}
+    <nav class="mt-4">
+      <ul class="pagination">
+        {% if page.has_previous %}
+          <li class="page-item"><a class="page-link" href="{% querystring page=page.previous_page_number %}">←</a></li>
+        {% endif %}
+        {% for number in page.paginator.page_range %}
+          <li class="page-item {% if number == page.number %}active{% endif %}">
+            <a class="page-link" href="{% querystring page=number %}">{{ number }}</a>
+          </li>
+        {% endfor %}
+        {% if page.has_next %}
+          <li class="page-item"><a class="page-link" href="{% querystring page=page.next_page_number %}">→</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  {% endif %}
+{% endblock %}

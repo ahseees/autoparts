@@ -1,0 +1,22 @@
+{% load static %}
+<div class="card h-100 part-card">
+  <a href="{{ part.get_absolute_url }}">
+    {% if part.image %}
+      <img class="card-img-top" src="{{ part.image.url }}" alt="{{ part.name }}">
+    {% else %}
+      <img class="card-img-top" src="{% static 'img/no-image.svg' %}" alt="Нет фото">
+    {% endif %}
+  </a>
+  <div class="card-body d-flex flex-column">
+    <a class="card-title text-decoration-none text-body mb-1" href="{{ part.get_absolute_url }}">{{ part.name }}</a>
+    <small class="text-muted mb-2">{{ part.manufacturer }} · арт. {{ part.sku }}</small>
+    <div class="mt-auto">
+      <div class="price">{{ part.price|floatformat:"-2g" }} ₽</div>
+      {% if part.in_stock %}
+        <small class="text-success">В наличии: {{ part.stock }} шт.</small>
+      {% else %}
+        <small class="text-danger">Нет в наличии</small>
+      {% endif %}
+    </div>
+  </div>
+</div>

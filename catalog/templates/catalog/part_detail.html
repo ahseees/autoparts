@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ part.name }} — {{ block.super }}{% endblock %}
+
+{% block content %}
+  <nav class="mb-3">
+    <a href="{% url 'catalog:part_list' %}">Каталог</a> /
+    <a href="{{ part.category.get_absolute_url }}">{{ part.category.name }}</a>
+  </nav>
+
+  <div class="row g-4">
+    <div class="col-md-5">
+      {% if part.image %}
+        <img class="img-fluid w-100 part-photo" src="{{ part.image.url }}" alt="{{ part.name }}">
+      {% else %}
+        <img class="img-fluid w-100 part-photo" src="{% static 'img/no-image.svg' %}" alt="Нет фото">
+      {% endif %}
+    </div>
+    <div class="col-md-7">
+      <h1 class="h3">{{ part.name }}</h1>
+      <p class="text-muted">Производитель: {{ part.manufacturer }} · Артикул: {{ part.sku }}</p>
+      <p class="price my-3">{{ part.price|floatformat:"-2g" }} ₽</p>
+      {% if part.in_stock %}
+        <p class="text-success">В наличии: {{ part.stock }} шт.</p>
+      {% else %}
+        <p class="text-danger">Нет в наличии</p>
+      {% endif %}
+      <p>{{ part.description|linebreaksbr }}</p>
+
+      <h2 class="h5 mt-4">Подходит к автомобилям</h2>
+      <ul>
+        {% for car in part.compatible_models.all %}
+          <li>{{ car }}</li>
+        {% empty %}
+          <li class="text-muted">Совместимость не указана</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+{% endblock %}
