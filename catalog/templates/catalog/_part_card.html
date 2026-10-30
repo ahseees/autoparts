@@ -1,22 +1,105 @@
-{% load static %}
-<div class="card h-100 part-card">
-  <a href="{{ part.get_absolute_url }}">
-    {% if part.image %}
-      <img class="card-img-top" src="{{ part.image.url }}" alt="{{ part.name }}">
-    {% else %}
-      <img class="card-img-top" src="{% static 'img/no-image.svg' %}" alt="Нет фото">
-    {% endif %}
-  </a>
-  <div class="card-body d-flex flex-column">
-    <a class="card-title text-decoration-none text-body mb-1" href="{{ part.get_absolute_url }}">{{ part.name }}</a>
-    <small class="text-muted mb-2">{{ part.manufacturer }} · арт. {{ part.sku }}</small>
-    <div class="mt-auto">
-      <div class="price">{{ part.price|floatformat:"-2g" }} ₽</div>
-      {% if part.in_stock %}
-        <small class="text-success">В наличии: {{ part.stock }} шт.</small>
-      {% else %}
-        <small class="text-danger">Нет в наличии</small>
-      {% endif %}
+
+<div class="card h-100 shadow-sm position-relative">
+
+    <!-- Фотография товара -->
+    <a href="{% url 'catalog:part_detail' part.slug %}"
+       class="text-decoration-none">
+
+        {% if part.image %}
+            <img src="{{ part.image.url }}"
+                 class="card-img-top"
+                 alt="{{ part.name }}"
+                 style="width: 100%; height: 240px;
+                        object-fit: contain; padding: 15px;
+                        background: white;">
+        {% else %}
+            <div class="d-flex align-items-center justify-content-center bg-light"
+                 style="height: 240px;">
+                <span class="text-muted">Нет фотографии</span>
+            </div>
+        {% endif %}
+    </a>
+
+    <!-- Сердечко избранного -->
+    <div class="position-absolute top-0 end-0 m-2"
+         style="z-index: 3;">
+
+        {% if user.is_authenticated %}
+            <form method="post"
+                  action="{% url 'favorite_toggle' part.pk %}">
+                {% csrf_token %}
+
+                <button type="submit"
+                        class="btn btn-light rounded-circle shadow-sm border"
+                        style="width: 40px; height: 40px; padding: 0;"
+                        title="{% if part.pk in favorite_part_ids %}Убрать из избранного{% else %}Добавить в избранное{% endif %}">
+
+                    <span class="text-danger fs-5">
+                        {% if part.pk in favorite_part_ids %}
+                            ♥
+                        {% else %}
+                            ♡
+                        {% endif %}
+                    </span>
+
+                </button>
+            </form>
+        {% else %}
+            <a href="{% url 'login' %}?next={{ request.path|urlencode }}"
+               class="btn btn-light rounded-circle shadow-sm border d-flex align-items-center justify-content-center"
+               style="width: 40px; height: 40px;"
+               title="Войдите, чтобы добавить в избранное">
+                <span class="text-danger fs-5">♡</span>
+            </a>
+        {% endif %}
     </div>
-  </div>
+
+    <!-- Информация о товаре -->
+    <div class="card-body d-flex flex-column">
+
+        <h5 class="card-title mb-2">
+            <a href="{% url 'catalog:part_detail' part.slug %}"
+               class="text-decoration-none text-dark">
+                {{ part.name }}
+            </a>
+        </h5>
+
+        <p class="text-muted small mb-3">
+            {{ part.manufacturer.name }} · арт. {{ part.sku }}
+        </p>
+
+        <div class="mt-auto">
+
+            <p class="fs-5 fw-semibold mb-1">
+                {{ part.price|floatformat:0 }} ₽
+            </p>
+
+            {% if part.stock > 0 %}
+                <p class="text-success mb-3">
+                    В наличии: {{ part.stock }} шт.
+                </p>
+
+                <form method="post"
+                      action="{% url 'cart:add' part.pk %}">
+                    {% csrf_token %}
+
+                    <input type="hidden" name="quantity" value="1">
+
+                    <button type="submit"
+                            class="btn btn-primary w-100">
+                        В корзину
+                    </button>
+                </form>
+            {% else %}
+                <p class="text-danger mb-3">
+                    Нет в наличии
+                </p>
+
+                <button class="btn btn-secondary w-100" disabled>
+                    Нет в наличии
+                </button>
+            {% endif %}
+
+        </div>
+    </div>
 </div>

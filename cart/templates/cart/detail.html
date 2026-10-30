@@ -1,0 +1,91 @@
+
+{% extends "base.html" %}
+
+{% block title %}Корзина — {{ block.super }}{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">Корзина</h1>
+
+{% if lines %}
+<table class="table align-middle">
+    <thead>
+        <tr>
+            <th>Запчасть</th>
+            <th>Цена</th>
+            <th>Количество</th>
+            <th>Сумма</th>
+            <th></th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for line in lines %}
+        <tr>
+            <td>
+                <a href="{{ line.product.get_absolute_url }}">
+                    {{ line.product.name }}
+                </a>
+            </td>
+
+            <td>{{ line.product.price }} ₽</td>
+
+            <td>
+                <form method="post"
+                      action="{% url 'cart:add' line.product.pk %}"
+                      class="d-flex gap-2">
+                    {% csrf_token %}
+                    <input type="number"
+                           name="quantity"
+                           value="{{ line.quantity }}"
+                           min="1"
+                           max="{{ line.product.stock }}"
+                           class="form-control form-control-sm"
+                           style="width: 80px">
+                    <input type="hidden" name="replace" value="True">
+                    <button class="btn btn-outline-primary btn-sm">
+                        OK
+                    </button>
+                </form>
+            </td>
+
+            <td>{{ line.total }} ₽</td>
+
+            <td>
+                <form method="post"
+                      action="{% url 'cart:remove' line.product.pk %}">
+                    {% csrf_token %}
+                    <button class="btn btn-danger btn-sm">
+                        Удалить
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h4 class="text-end">Итого: {{ total }} ₽</h4>
+
+<div class="text-end my-3">
+    <a href="{% url 'orders:create' %}"
+       class="btn btn-success btn-lg">
+        Оформить заказ
+    </a>
+</div>
+
+
+<a href="{% url 'catalog:part_list' %}"
+   class="btn btn-outline-secondary">
+    Продолжить покупки
+</a>
+
+{% else %}
+<p>Ваша корзина пока пуста.</p>
+
+<a href="{% url 'catalog:part_list' %}"
+   class="btn btn-primary">
+    Перейти в каталог
+</a>
+{% endif %}
+
+{% endblock %}

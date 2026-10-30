@@ -1,0 +1,66 @@
+
+{% extends "base.html" %}
+
+{% block title %}Мой гараж{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Мой гараж</h1>
+
+    <a href="{% url 'garage_add' %}"
+       class="btn btn-primary">
+        + Добавить автомобиль
+    </a>
+</div>
+
+<div class="row g-3">
+
+    {% for car in cars %}
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+
+                    <h5 class="card-title">
+                        {{ car.car_model.make.name }}
+                        {{ car.car_model.name }}
+                    </h5>
+
+                    <p class="text-muted">
+                        Год выпуска: {{ car.year }}
+                    </p>
+
+<a href="{% url 'catalog:part_list' %}?garage_car={{ car.id }}"
+   class="btn btn-primary btn-sm mb-2">
+    Подобрать запчасти
+</a>
+
+                    <form method="post"
+                          action="{% url 'garage_delete' car.id %}">
+                        {% csrf_token %}
+
+                        <button type="submit"
+                                class="btn btn-outline-danger btn-sm"
+                                onclick="return confirm('Удалить автомобиль?')">
+                            Удалить
+                        </button>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    {% empty %}
+
+        <div class="col-12">
+            <div class="alert alert-info">
+                В гараже пока нет автомобилей.
+                Добавьте свой автомобиль, чтобы подбирать
+                совместимые автозапчасти.
+            </div>
+        </div>
+
+    {% endfor %}
+
+</div>
+
+{% endblock %}

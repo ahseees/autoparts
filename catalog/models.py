@@ -1,7 +1,8 @@
+
 from decimal import Decimal
 
 from django.core.validators import MinValueValidator
-from django.db import models
+from django.db import models, transaction
 from django.db.models import F, Q
 from django.urls import reverse
 
@@ -19,7 +20,10 @@ class Category(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return reverse("catalog:part_list_by_category", args=[self.slug])
+        return reverse(
+            "catalog:part_list_by_category",
+            args=[self.slug],
+        )
 
 
 class Manufacturer(models.Model):
@@ -49,7 +53,10 @@ class CarMake(models.Model):
 
 class CarModel(models.Model):
     make = models.ForeignKey(
-        CarMake, verbose_name="Марка", on_delete=models.CASCADE, related_name="models"
+        CarMake,
+        verbose_name="Марка",
+        on_delete=models.CASCADE,
+        related_name="models",
     )
     name = models.CharField("Модель", max_length=100)
     year_from = models.PositiveSmallIntegerField("Год выпуска с")
@@ -59,73 +66,167 @@ class CarModel(models.Model):
         verbose_name = "модель автомобиля"
         verbose_name_plural = "модели автомобилей"
         ordering = ["make__name", "name", "year_from"]
+
         constraints = [
             models.CheckConstraint(
                 condition=Q(year_from__lte=F("year_to")),
                 name="carmodel_years_valid",
             ),
             models.UniqueConstraint(
-                fields=["make", "name", "year_from"], name="carmodel_unique"
+                fields=["make", "name", "year_from"],
+                name="carmodel_unique",
             ),
         ]
 
     def __str__(self):
-        return f"{self.make} {self.name} ({self.year_from}–{self.year_to})"
+        return (
+            f"{self.make} {self.name} "
+            f"({self.year_from}–{self.year_to})"
+        )
 
 
 class Part(models.Model):
     category = models.ForeignKey(
-        Category, verbose_name="Категория", on_delete=models.PROTECT, related_name="parts"
+        Category,
+        verbose_name="Категория",
+        on_delete=models.PROTECT,
+        related_name="parts",
     )
+
     manufacturer = models.ForeignKey(
         Manufacturer,
         verbose_name="Производитель",
         on_delete=models.PROTECT,
         related_name="parts",
     )
+
     name = models.CharField("Название", max_length=200)
-    slug = models.SlugField("Адрес (slug)", max_length=200, unique=True)
-    sku = models.CharField("Артикул", max_length=50, unique=True)
-    description = models.TextField("Описание", blank=True)
+
+    slug = models.SlugField(
+        "Адрес (slug)",
+        max_length=200,
+        unique=True,
+    )
+
+    sku = models.CharField(
+        "Артикул",
+        max_length=50,
+        unique=True,
+    )
+
+    description = models.TextField(
+        "Описание",
+        blank=True,
+    )
+
     price = models.DecimalField(
         "Цена, ₽",
         max_digits=10,
         decimal_places=2,
-        validators=[MinValueValidator(Decimal("0.01"))],
+        validators=[
+            MinValueValidator(Decimal("0.01"))
+        ],
     )
-    stock = models.PositiveIntegerField("Остаток на складе", default=0)
-    image = models.ImageField("Фото", upload_to="parts/", blank=True)
-    is_active = models.BooleanField("Показывать в каталоге", default=True)
+
+    stock = models.PositiveIntegerField(
+        "Остаток на складе",
+        default=0,
+    )
+
+    image = models.ImageField(
+        "Фото",
+        upload_to="parts/",
+        blank=True,
+    )
+
+    is_active = models.BooleanField(
+        "Показывать в каталоге",
+        default=True,
+    )
+
     compatible_models = models.ManyToManyField(
         CarModel,
         verbose_name="Подходит к автомобилям",
         related_name="parts",
         blank=True,
     )
-    search_index = models.TextField(editable=False, blank=True)
-    created_at = models.DateTimeField("Добавлена", auto_now_add=True)
-    updated_at = models.DateTimeField("Изменена", auto_now=True)
+
+    search_index = models.TextField(
+        editable=False,
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(
+        "Добавлена",
+        auto_now_add=True,
+    )
+
+    updated_at = models.DateTimeField(
+        "Изменена",
+        auto_now=True,
+    )
 
     class Meta:
         verbose_name = "запчасть"
         verbose_name_plural = "запчасти"
         ordering = ["name"]
+
         constraints = [
             models.CheckConstraint(
-                condition=Q(price__gt=0), name="part_price_positive"
+                condition=Q(price__gt=0),
+                name="part_price_positive",
             ),
         ]
 
     def __str__(self):
         return self.name
 
-    def save(self, *args, **kwargs):
-        self.search_index = f"{self.name} {self.sku} {self.description}".lower()
-        super().save(*args, **kwargs)
-
     def get_absolute_url(self):
-        return reverse("catalog:part_detail", args=[self.slug])
+        return reverse(
+            "catalog:part_detail",
+            args=[self.slug],
+        )
 
     @property
     def in_stock(self):
         return self.stock > 0
+
+    def save(self, *args, **kwargs):
+        from accounts.models import Favorite, Notification
+
+        self.search_index = (
+            f"{self.name} {self.sku} {self.description}"
+        ).lower()
+
+        old_stock = None
+
+        if self.pk:
+            old_stock = (
+                Part.objects.filter(pk=self.pk)
+                .values_list("stock", flat=True)
+                .first()
+            )
+
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+
+            # Уведомления при поступлении товара
+            if old_stock == 0 and self.stock > 0:
+                user_ids = list(
+                    Favorite.objects.filter(part=self)
+                    .values_list("user_id", flat=True)
+                )
+
+                Notification.objects.bulk_create(
+                    [
+                        Notification(
+                            user_id=user_id,
+                            text=(
+                                f"Товар «{self.name}» "
+                                f"снова в наличии"
+                            ),
+                            link=self.get_absolute_url(),
+                        )
+                        for user_id in user_ids
+                    ]
+                )

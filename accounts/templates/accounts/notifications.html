@@ -1,0 +1,63 @@
+
+{% extends "base.html" %}
+
+{% block title %}Уведомления{% endblock %}
+
+{% block content %}
+
+<h1 class="h3 mb-4">Уведомления</h1>
+
+{% for notification in notifications %}
+
+    <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+
+            <p class="mb-2">
+                {% if not notification.is_read %}
+                    <span class="badge bg-primary">
+                        Новое
+                    </span>
+                {% endif %}
+
+                {{ notification.text }}
+            </p>
+
+            <p class="text-muted small">
+                {{ notification.created_at|date:"d.m.Y H:i" }}
+            </p>
+
+            <div class="d-flex gap-2">
+
+                {% if notification.link %}
+                    <a href="{{ notification.link }}"
+                       class="btn btn-outline-primary btn-sm">
+                        Посмотреть товар
+                    </a>
+                {% endif %}
+
+                {% if not notification.is_read %}
+                    <form method="post"
+                          action="{% url 'notification_read' notification.id %}">
+                        {% csrf_token %}
+
+                        <button type="submit"
+                                class="btn btn-outline-secondary btn-sm">
+                            Отметить прочитанным
+                        </button>
+                    </form>
+                {% endif %}
+
+            </div>
+
+        </div>
+    </div>
+
+{% empty %}
+
+    <div class="alert alert-info">
+        У вас пока нет уведомлений.
+    </div>
+
+{% endfor %}
+
+{% endblock %}

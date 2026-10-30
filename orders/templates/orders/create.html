@@ -1,0 +1,81 @@
+
+{% extends "base.html" %}
+
+{% block title %}Оформление заказа{% endblock %}
+
+{% block content %}
+
+<h1 class="h3 mb-4">Оформление заказа</h1>
+
+{% if compatibility_warnings %}
+    <div class="alert alert-warning mb-4">
+        <strong>Внимание!</strong>
+
+        <p class="mb-2">
+            Следующие запчасти не указаны как совместимые
+            ни с одним автомобилем из вашего гаража:
+        </p>
+
+        <ul class="mb-2">
+            {% for part_name in compatibility_warnings %}
+                <li>{{ part_name }}</li>
+            {% endfor %}
+        </ul>
+
+        <p class="mb-0">
+            Проверьте совместимость перед оформлением заказа.
+            Вы можете продолжить покупку.
+        </p>
+    </div>
+{% endif %}
+
+<div class="row g-4">
+
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-body">
+
+                <h5 class="mb-3">Данные покупателя</h5>
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    {% include "_form_fields.html" %}
+
+                    <button type="submit"
+                            class="btn btn-success w-100">
+                        Подтвердить заказ
+                    </button>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card shadow-sm">
+            <div class="card-body">
+
+                <h5>Ваш заказ</h5>
+
+                {% for line in lines %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>
+                            {{ line.product.name }}
+                            × {{ line.quantity }}
+                        </span>
+                        <span>{{ line.total }} ₽</span>
+                    </div>
+                {% endfor %}
+
+                <hr>
+
+                <h5>Итого: {{ total }} ₽</h5>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

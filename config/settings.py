@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     "accounts",
     "catalog",
+    "cart",
+    "orders"
 ]
 
 MIDDLEWARE = [
@@ -64,6 +66,8 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'catalog.context_processors.categories',
+                "cart.context_processors.cart",
+                "accounts.context_processors.notifications_count",
             ],
         },
     },
@@ -135,3 +139,6 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "catalog:part_list"
+LOGOUT_REDIRECT_URL = "catalog:part_list"

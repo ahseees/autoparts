@@ -1,41 +1,168 @@
+
 {% extends "base.html" %}
-{% load static %}
 
 {% block title %}{{ part.name }} — {{ block.super }}{% endblock %}
 
 {% block content %}
-  <nav class="mb-3">
-    <a href="{% url 'catalog:part_list' %}">Каталог</a> /
-    <a href="{{ part.category.get_absolute_url }}">{{ part.category.name }}</a>
-  </nav>
 
-  <div class="row g-4">
+<div class="mb-4">
+    <a href="{% url 'catalog:part_list' %}"
+       class="text-decoration-none">
+        ← Вернуться в каталог
+    </a>
+</div>
+
+<div class="row g-4">
+
+    <!-- Фотография запчасти -->
     <div class="col-md-5">
-      {% if part.image %}
-        <img class="img-fluid w-100 part-photo" src="{{ part.image.url }}" alt="{{ part.name }}">
-      {% else %}
-        <img class="img-fluid w-100 part-photo" src="{% static 'img/no-image.svg' %}" alt="Нет фото">
-      {% endif %}
+        <div class="card shadow-sm border-0">
+            {% if part.image %}
+                <img src="{{ part.image.url }}"
+                     class="card-img-top"
+                     alt="{{ part.name }}"
+                     style="width: 100%;
+                            height: 400px;
+                            object-fit: contain;
+                            padding: 20px;
+                            background-color: white;">
+            {% else %}
+                <div class="bg-light d-flex align-items-center justify-content-center"
+                     style="height: 350px;">
+                    <span class="text-muted">Нет фотографии</span>
+                </div>
+            {% endif %}
+        </div>
     </div>
-    <div class="col-md-7">
-      <h1 class="h3">{{ part.name }}</h1>
-      <p class="text-muted">Производитель: {{ part.manufacturer }} · Артикул: {{ part.sku }}</p>
-      <p class="price my-3">{{ part.price|floatformat:"-2g" }} ₽</p>
-      {% if part.in_stock %}
-        <p class="text-success">В наличии: {{ part.stock }} шт.</p>
-      {% else %}
-        <p class="text-danger">Нет в наличии</p>
-      {% endif %}
-      <p>{{ part.description|linebreaksbr }}</p>
 
-      <h2 class="h5 mt-4">Подходит к автомобилям</h2>
-      <ul>
-        {% for car in part.compatible_models.all %}
-          <li>{{ car }}</li>
-        {% empty %}
-          <li class="text-muted">Совместимость не указана</li>
-        {% endfor %}
-      </ul>
+    <!-- Информация о товаре -->
+    <div class="col-md-7">
+
+        <h1 class="h3 mb-4">{{ part.name }}</h1>
+
+        <div class="mb-4">
+            <p class="mb-2">
+                <strong>Артикул:</strong> {{ part.sku }}
+            </p>
+
+            <p class="mb-2">
+                <strong>Категория:</strong>
+                {{ part.category.name }}
+            </p>
+
+            <p class="mb-2">
+                <strong>Производитель:</strong>
+                {{ part.manufacturer.name }}
+            </p>
+        </div>
+
+        <!-- Цена -->
+        <h2 class="text-primary fw-bold mb-3">
+            {{ part.price|floatformat:2 }} ₽
+        </h2>
+
+        <!-- Наличие -->
+        {% if part.stock > 0 %}
+            <p class="text-success fw-semibold mb-3">
+                ✓ В наличии: {{ part.stock }} шт.
+            </p>
+        {% else %}
+            <p class="text-danger fw-semibold mb-3">
+                Нет в наличии
+            </p>
+        {% endif %}
+
+        <!-- Избранное доступно даже при нулевом остатке -->
+        <div class="mb-3">
+            {% if user.is_authenticated %}
+                <form method="post"
+                      action="{% url 'favorite_toggle' part.pk %}">
+                    {% csrf_token %}
+
+                    <button type="submit"
+                            class="btn {% if is_favorite %}btn-danger{% else %}btn-outline-danger{% endif %}">
+
+                        {% if is_favorite %}
+                            ♥ Убрать из избранного
+                        {% else %}
+                            ♡ Добавить в избранное
+                        {% endif %}
+
+                    </button>
+                </form>
+            {% else %}
+                <a href="{% url 'login' %}?next={{ request.path|urlencode }}"
+                   class="btn btn-outline-danger">
+                    ♡ Добавить в избранное
+                </a>
+            {% endif %}
+        </div>
+
+        <!-- Корзина -->
+        {% if part.stock > 0 %}
+            <form method="post"
+                  action="{% url 'cart:add' part.pk %}"
+                  class="d-flex flex-wrap align-items-center gap-2 mb-4">
+
+                {% csrf_token %}
+
+                <input type="number"
+                       name="quantity"
+                       value="1"
+                       min="1"
+                       max="{{ part.stock }}"
+                       class="form-control"
+                       style="width: 100px;"
+                       aria-label="Количество товара">
+
+                <button type="submit"
+                        class="btn btn-primary px-4">
+                    В корзину
+                </button>
+            </form>
+        {% else %}
+            <p class="text-muted small mb-4">
+                Добавьте товар в избранное, чтобы получить
+                уведомление, когда он снова появится в наличии.
+            </p>
+        {% endif %}
+
+        <!-- Описание -->
+        {% if part.description %}
+            <div class="mt-4">
+                <h3 class="h5 mb-3">Описание</h3>
+                <div class="text-muted">
+                    {{ part.description|linebreaks }}
+                </div>
+            </div>
+        {% endif %}
+
     </div>
-  </div>
+</div>
+
+<!-- Совместимые автомобили -->
+<div class="mt-5">
+
+    <h3 class="h4 mb-3">
+        Подходит для автомобилей
+    </h3>
+
+    <div class="card shadow-sm">
+        <ul class="list-group list-group-flush">
+            {% for car in part.compatible_models.all %}
+                <li class="list-group-item">
+                    {{ car.make.name }}
+                    {{ car.name }}
+                    ({{ car.year_from }}–{{ car.year_to }})
+                </li>
+            {% empty %}
+                <li class="list-group-item text-muted">
+                    Совместимые автомобили не указаны.
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+</div>
+
 {% endblock %}
